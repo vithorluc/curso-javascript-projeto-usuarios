@@ -22,9 +22,9 @@ class UserController {
 
                 values.photo = content 
 
+                this.addLine(values)
             })
 
-            this.addLine(values)
 
         })
     }
@@ -43,14 +43,14 @@ class UserController {
 
         })
 
+        let file = elements[0].files[0]
+
         fileReader.onload = () => {
 
             callback(fileReader.result)
 
         }
-
-        let file = elements[0].files[0]
-        console.log(file)
+        
         fileReader.readAsDataURL(file)
     } 
 
