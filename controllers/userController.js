@@ -1,13 +1,12 @@
 class UserController {
 
-    constructor(formId, tableId){
+    constructor(formIdCreate, FormIdUpdate, tableId){
 
-        this.formEl = document.getElementById(formId)
+        this.formEl = document.getElementById(formIdCreate)
+        this.formUpdateEl = document.getElementById(FormIdUpdate)
         this.tableEl = document.getElementById(tableId)
-
         this.onSubmit()
         this.onEdit()
-
     }
 
     onEdit(){
@@ -16,6 +15,73 @@ class UserController {
             this.showPanelCreate()
 
         })
+        this.formUpdateEl.addEventListener('submit', event => {
+
+            event.preventDefault()
+
+            let btn = this.formUpdateEl.querySelector('[type=submit]')
+
+            btn.disabled = true
+
+            let values = this.getValues(this.formUpdateEl)
+
+            
+            /* acess the row edited by the admin user that was setted in addLine() method. */
+            let index = this.formUpdateEl.dataset.trIndex
+
+            let tr = this.tableEl.rows[index]
+
+            let userOld = JSON.parse(tr.dataset.user)
+
+            /* copy a value of atribute of another object. it overwrite from the left to right*/
+            let result = Object.assign({}, userOld, values)
+
+
+
+            this.getPhoto( this.formUpdateEl).then(
+
+                (content) => {
+                    
+                    if (!values.photo) {
+                        result._photo = userOld._photo
+                    } else {
+                        result._photo = content 
+                    }
+
+                    tr.dataset.user = JSON.stringify(result)
+
+                    tr.innerHTML = 
+                        /*innerHTML - the string inside is interpreted as a command in HTML*/
+                    `<td>
+                            <img src="${result._photo}" alt="User Image" class="img-circle img-sm"></td>
+                            <td>${result._name}</td>
+                            <td>${result._email}</td>
+                            <td>${result._admin ? 'Sim' : 'Não'} </td>
+                            <td>${Utils.dateFormat(result._register)}</td>
+                            <td>
+                                <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
+                                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+                        </td>`
+            
+                        this.addEventsTr(tr)
+            
+                        this.updateCount()
+
+                        this.formUpdateEl.reset()
+  
+                    btn.disabled = false
+
+                    this.showPanelCreate()
+            
+              },(e) => {
+  
+                  this.addLine(values)
+  
+              })
+    
+            
+        })
+
     }
 
 
@@ -30,13 +96,13 @@ class UserController {
 
             btn.disabled = true
 
-            let values = this.getValues()
+            let values = this.getValues(this.formEl)
             
     /* then is a method that works based on promises and it recieves both parameters
     resolve and reject and uses function to make action based on it. */
             if (!values) return false
             
-            this.getPhoto().then(
+            this.getPhoto(this.formEl).then(
 
               (content) => {
 
@@ -61,14 +127,14 @@ class UserController {
 
     /*instead of what was said above we can use Promise that is an assyncronous class with methods
     based on that.*/
-    getPhoto(){
+    getPhoto(formEl){
 
         return new Promise((resolve, reject) => {
             /*FileReader is a library inside we have events that disparate function in our 
             code. */
             let fileReader = new FileReader(); 
 
-            let elements = [...this.formEl.elements].filter(item => {
+            let elements = [...formEl.elements].filter(item => {
     
                 if (item.name === 'photo') {
                     return item
@@ -101,7 +167,7 @@ class UserController {
     } 
 
 
-    getValues(){
+    getValues(FormEl){
 
         let user = {};
              /* spread operator transform a colection of HTML in an array in javascript */
@@ -109,7 +175,7 @@ class UserController {
          let isValid = true;
 
 
-        [...this.formEl.elements].forEach(function(fields, index){
+        [...FormEl.elements].forEach(function(fields, index){
                 /*indexof() retruns if something is inside the array and return -1> if its true */
             if(['name', 'email', 'password'].indexOf(fields.name) > -1 && !fields.value) {
                 fields.parentElement.classList.add('has-error')
@@ -117,10 +183,10 @@ class UserController {
                 
             }
 
-            if(fields.name == 'gender' && fields.checked) {
-        
-                user[fields.name] = fields.value
-        
+            if(fields.name == 'gender') {
+                if (fields.checked){
+                    user[fields.name] = fields.value
+                }
             } else if (fields.name == 'admin') {
 
                 user[fields.name] = fields.checked
@@ -168,31 +234,51 @@ class UserController {
         </td>`
         
         
-
-        tr.querySelector(".btn-edit").addEventListener('click', (e) => {
-
-                let json = JSON.parse(tr.dataset.user)
-                
-                let form =  document.querySelector("#form-user-update")
-
-                for (let name in json) {
-
-                    let field = form.querySelector("[name=" + name.replace("_","") + "]")
-
-                    
-                    if(field){
-                        if(field.type == 'file') continue 
-                        field.value = json[name]
-                    }
-
-                }
-
-                this.showPanelUpdate()
-        })
+        this.addEventsTr(tr)
 
         this.tableEl.appendChild(tr)
 
         this.updateCount()
+    }
+
+    addEventsTr(tr){
+
+        tr.querySelector(".btn-edit").addEventListener('click', (e) => {
+
+            let json = JSON.parse(tr.dataset.user)
+            // sectionRowIndex is an HTML propriety that returnas the index of the rows in a tr.
+             this.formUpdateEl.dataset.trIndex = tr.sectionRowIndex
+
+        for (let name in json) {
+
+            let field =  this.formUpdateEl.querySelector("[name=" + name.replace("_","") + "]")
+
+            if (field){
+
+                switch(field.type){
+                    case 'file':
+                        continue
+                        break 
+
+                    case 'radio':
+                            field =  this.formUpdateEl.querySelector("[name=" + name.replace("_","") + "][value="+json[name]+"]")
+                            field.checked = true
+                        break
+                        
+                    case 'checkbox':
+                            field.checked = json[name]
+                        break
+                            
+                    default:
+                            field.value = json[name]
+                }
+            }
+        }
+        this.formUpdateEl.querySelector('.photo').src = json._photo
+
+            this.showPanelUpdate()
+    })
+
     }
 
     showPanelCreate(){
