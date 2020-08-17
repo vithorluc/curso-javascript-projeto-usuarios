@@ -129,11 +129,15 @@ class User {
 
     getNewID(){
 
-        if (!window.id) window.id = 0
-        
-        id++ 
+        let usersID = parseInt(localStorage.getItem('usersID')) 
 
-        return id 
+        if (!usersID) usersID = 0
+        
+        usersID++ 
+
+        localStorage.setItem('usersID', usersID)
+
+        return usersID 
 
 
     }
@@ -162,6 +166,27 @@ class User {
             users.push(this)
 
         }
+
+        localStorage.setItem("users", JSON.stringify(users))
+
+    }
+
+    remove(){
+
+        let users = User.getUserStorage() 
+
+        users.forEach((userData, index) => {
+
+            if (this._id == userData._id) {
+                /*spice function remove things from the array but needs to recieve two parameters
+                1: index of the element
+                2: how much from this element you want to remove. 
+                If one for example, it will just remove the current element from the array. */
+                users.splice(index, 1)
+
+            }
+
+        });
 
         localStorage.setItem("users", JSON.stringify(users))
 
