@@ -7,6 +7,7 @@ class UserController {
         this.tableEl = document.getElementById(tableId)
         this.onSubmit()
         this.onEdit()
+        this.selectAll()
     }
 
     onEdit(){
@@ -48,28 +49,19 @@ class UserController {
                         result._photo = content 
                     }
 
-                    tr.dataset.user = JSON.stringify(result)
+                        let user = new User()
 
-                    tr.innerHTML = 
-                        /*innerHTML - the string inside is interpreted as a command in HTML*/
-                    `<td>
-                            <img src="${result._photo}" alt="User Image" class="img-circle img-sm"></td>
-                            <td>${result._name}</td>
-                            <td>${result._email}</td>
-                            <td>${result._admin ? 'Sim' : 'Não'} </td>
-                            <td>${Utils.dateFormat(result._register)}</td>
-                            <td>
-                                <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
-                                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
-                        </td>`
-            
-                        this.addEventsTr(tr)
-            
+                        user.loadFromJSON(result)
+
+                        user.save() 
+
+                        tr = this.getTr(user, tr)
+                
                         this.updateCount()
 
                         this.formUpdateEl.reset()
-  
-                    btn.disabled = false
+    
+                        btn.disabled = false
 
                     this.showPanelCreate()
             
@@ -78,10 +70,7 @@ class UserController {
                   this.addLine(values)
   
               })
-    
-            
         })
-
     }
 
 
@@ -107,6 +96,8 @@ class UserController {
               (content) => {
 
                 values.photo = content 
+
+                values.save()
 
                 this.addLine(values)
 
@@ -213,13 +204,54 @@ class UserController {
         user.admin )
     }
 
+    getUserStorage(){
+
+        let users = []
+
+        if(localStorage.getItem('users')) {
+
+            users = JSON.parse(localStorage.getItem("users"))
+
+        }
+
+        console.log(users)
+
+        return users
+    }
+
+    selectAll(){
+
+        let users = this.getUserStorage()
+
+        users.forEach(dataUser => {
+
+            let user = new User()
+
+            user.loadFromJSON(dataUser)
+
+            this.addLine(user)
+
+        })
+
+
+    }
 
     addLine(dataUser){
 
-        let tr = document.createElement('tr')
-        /*JSON.stringfy transform the dataset content in an object of javascript */
-        tr.dataset.user = JSON.stringify(dataUser)
+        let tr = this.getTr(dataUser)
 
+        this.tableEl.appendChild(tr)
+
+        this.updateCount()
+    }
+
+    /*opitional parameter tr = null */
+    getTr(dataUser, tr = null){
+
+        if (tr === null )  tr = document.createElement('tr')
+
+    /*JSON.stringfy transform the dataset content in an object of javascript */
+        tr.dataset.user = JSON.stringify(dataUser)
 
         tr.innerHTML= 
         /*innerHTML - the string inside is interpreted as a command in HTML*/
@@ -230,18 +262,25 @@ class UserController {
             <td>${Utils.dateFormat(dataUser.register)}</td>
             <td>
                 <button type="button" class="btn btn-primary btn-edit btn-xs btn-flat">Editar</button>
-                <button type="button" class="btn btn-danger btn-xs btn-flat">Excluir</button>
+                <button type="button" class="btn btn-danger btn-delete btn-xs btn-flat">Excluir</button>
         </td>`
-        
-        
+
         this.addEventsTr(tr)
 
-        this.tableEl.appendChild(tr)
-
-        this.updateCount()
+        return tr 
     }
 
     addEventsTr(tr){
+
+        tr.querySelector('.btn-delete').addEventListener('click', e => {
+            // confirm() open an confirmation window on click 
+            confirm('Deseja realmente excluir?')
+
+            tr.remove() 
+
+            this.updateCount()
+
+        })
 
         tr.querySelector(".btn-edit").addEventListener('click', (e) => {
 
